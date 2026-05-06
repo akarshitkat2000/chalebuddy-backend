@@ -87,12 +87,7 @@ app.use("/api/",           rl(300, 15 * 60 * 1000));
 app.use("/api/auth/login", rl(20,  15 * 60 * 1000));
 app.use("/api/payments/",  rl(60,  15 * 60 * 1000));
 
-app.get("/", (req, res) => {
-  res.status(200).json({
-    message: "Welcome to ChaleBuddy API!",
-    status: "active"
-  });
-});
+
 
 // ── Health check ──────────────────────────────────────────────
 app.get("/api/health", (req, res) => {
