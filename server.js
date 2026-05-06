@@ -1,6 +1,6 @@
 "use strict";
 require("dotenv").config();
-
+const cors = require('cors');
 const express       = require("express");
 const cors          = require("cors");
 const helmet        = require("helmet");
@@ -29,6 +29,14 @@ const adminRoutes            = require("./routes/adminRoutes");
 connectDB();
 const app = express();
 
+app.use(cors({
+  origin: [
+    'https://chalebuddy-frontend-c53v.vercel.app',
+    'https://chalebuddy-frontend-c53v-c2p8vwr2q-akarshitkat2000s-projects.vercel.app'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 // ── Security ──────────────────────────────────────────────────
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" }, contentSecurityPolicy: false }));
 app.use(cors({
