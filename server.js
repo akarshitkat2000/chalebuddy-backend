@@ -32,22 +32,14 @@ const app = express();
 app.use(cors({
   origin: [
     'https://chalebuddy-frontend-c53v.vercel.app',
-    'https://chalebuddy-frontend-c53v-c2p8vwr2q-akarshitkat2000s-projects.vercel.app'
+    'https://chalebuddy-frontend-c53v-c2p8vwr2q-akarshitkat2000s-projects.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:4173'
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Source', 'x-razorpay-signature'],
   credentials: true
-}));
-// ── Security ──────────────────────────────────────────────────
-app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" }, contentSecurityPolicy: false }));
-app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || "http://localhost:5173",
-    "http://localhost:3000",
-    "http://localhost:4173",
-  ],
-  credentials: true,
-  methods: ["GET","POST","PATCH","PUT","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization","X-Source","x-razorpay-signature"],
 }));
 app.use(mongoSanitize());
 app.use(compression());
