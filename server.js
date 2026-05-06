@@ -31,6 +31,8 @@ const app = express();
 
 app.use(cors({
   origin: [
+    'https://chalebuddy.in',             // Aapka naya domain
+    'https://www.chalebuddy.in',         // www wala version
     'https://chalebuddy-frontend-c53v.vercel.app',
     'https://chalebuddy-frontend-c53v-c2p8vwr2q-akarshitkat2000s-projects.vercel.app',
     'http://localhost:5173',
