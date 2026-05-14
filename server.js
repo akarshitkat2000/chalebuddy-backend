@@ -13,14 +13,14 @@ const connectDB    = require("./config/db");
 const logger       = require("./utils/logger");
 const AppError     = require("./utils/AppError");
 const errorHandler = require("./middleware/errorHandler");
+const { verifyEmailConnection } = require("./utils/email");
 
-// ── Routes ────────────────────────────────────────────────────
 const authRoutes             = require("./routes/authRoutes");
 const guideRoutes            = require("./routes/guideRoutes");
 const stayRoutes             = require("./routes/stayRoutes");
 const transportRoutes        = require("./routes/transportRoutes");
 const bookingRoutes          = require("./routes/bookingRoutes");
-const paymentRoutes          = require("./routes/paymentRoutes");   // ← payment
+const paymentRoutes          = require("./routes/paymentRoutes");
 const contactRoutes          = require("./routes/contactRoutes");
 const tripRoutes             = require("./routes/tripRoutes");
 const guideApplicationRoutes = require("./routes/guideApplicationRoutes");
@@ -31,31 +31,26 @@ const app = express();
 
 app.use(cors({
   origin: [
-    'https://chalebuddy.in',             // Aapka naya domain
-    'https://www.chalebuddy.in',         // www wala version
-    'https://chalebuddy-frontend-c53v.vercel.app',
-    'https://chalebuddy-frontend-c53v-c2p8vwr2q-akarshitkat2000s-projects.vercel.app',
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://localhost:4173'
+    "https://chalebuddy.in",
+    "https://www.chalebuddy.in",
+    "https://chalebuddy-frontend-c53v.vercel.app",
+    "https://chalebuddy-frontend-c53v-c2p8vwr2q-akarshitkat2000s-projects.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:4173",
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Source', 'x-razorpay-signature'],
-  credentials: true
+  methods: ["GET","POST","PUT","DELETE","PATCH","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization","X-Source","x-razorpay-signature"],
+  credentials: true,
 }));
 app.use(mongoSanitize());
 app.use(compression());
 
-// ── CRITICAL: Payment routes BEFORE express.json() ───────────
-// Webhook needs raw body buffer for HMAC verification.
-// paymentRoutes.js uses express.raw() on /webhook internally.
 app.use("/api/payments", paymentRoutes);
 
-// ── Body parsing (all other routes) ──────────────────────────
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
-// ── Static uploads ────────────────────────────────────────────
 const UPLOADS_DIR = path.resolve(__dirname, "uploads");
 app.use(
   "/uploads",
@@ -63,10 +58,8 @@ app.use(
   (_req, res) => res.status(404).send("Image not found")
 );
 
-// ── HTTP logging ──────────────────────────────────────────────
 if (process.env.NODE_ENV === "development") app.use(morgan("dev"));
 
-// ── Hand-rolled rate limiter ──────────────────────────────────
 const hits = {};
 const rl = (max, windowMs) => (req, res, next) => {
   const key = req.ip + req.path;
@@ -89,9 +82,6 @@ app.use("/api/",           rl(300, 15 * 60 * 1000));
 app.use("/api/auth/login", rl(20,  15 * 60 * 1000));
 app.use("/api/payments/",  rl(60,  15 * 60 * 1000));
 
-
-
-// ── Health check ──────────────────────────────────────────────
 app.get("/api/health", (req, res) => {
   const mongoose = require("mongoose");
   res.json({
@@ -101,37 +91,34 @@ app.get("/api/health", (req, res) => {
     environment: process.env.NODE_ENV,
     database:    mongoose.connection.readyState === 1 ? "connected" : "disconnected",
     payment:     process.env.RAZORPAY_KEY_ID ? "razorpay_configured" : "not_configured",
+    email:       process.env.EMAIL_USER || "not_configured",
     sms:         process.env.SMS_ENABLED === "true" ? "enabled" : "disabled",
     whatsapp:    process.env.WHATSAPP_ENABLED === "true" ? "enabled" : "disabled",
     uptime:      `${Math.floor(process.uptime())}s`,
   });
 });
 
-// ── API Routes ────────────────────────────────────────────────
 app.use("/api/auth",               authRoutes);
 app.use("/api/guides",             guideRoutes);
 app.use("/api/stays",              stayRoutes);
 app.use("/api/transport",          transportRoutes);
 app.use("/api/bookings",           bookingRoutes);
-// /api/payments already mounted above (before express.json)
 app.use("/api/contact",            contactRoutes);
 app.use("/api/trips",              tripRoutes);
 app.use("/api/guide-applications", guideApplicationRoutes);
 app.use("/api/admin",              adminRoutes);
 
-// ── 404 ───────────────────────────────────────────────────────
 app.all("*", (req, res, next) =>
   next(new AppError(`${req.method} ${req.originalUrl} not found.`, 404))
 );
 
-// ── Global error handler ──────────────────────────────────────
 app.use(errorHandler);
 
-// ── Start ─────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT, 10) || 5000;
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   logger.info(`🚀 ChaleBuddy API on port ${PORT} [${process.env.NODE_ENV}]`);
   logger.info(`💳 Payment: ${process.env.RAZORPAY_KEY_ID ? "Razorpay ✅" : "NOT configured ⚠️"}`);
+  await verifyEmailConnection();
 });
 
 process.on("unhandledRejection", err => {
